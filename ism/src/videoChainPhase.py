@@ -56,6 +56,7 @@ class videoChainPhase(initIsm):
         :return: output toa in [V]
         """
         #TODO
+        toa = toa * OCF * gain_adc
         return toa
 
     def digitisation(self, toa, bit_depth, min_voltage, max_voltage):
@@ -68,5 +69,15 @@ class videoChainPhase(initIsm):
         :return: toa in digital counts
         """
         #TODO
+        max_dn = 2 ** bit_depth - 1
+
+        toa_dn = np.round(toa / (max_voltage - min_voltage) * max_dn)
+
+        # Saturation
+        toa_dn[toa_dn > max_dn] = max_dn
+        toa_dn[toa_dn < 0] = 0
+
+        self.logger.debug("Number of saturated pixels: " + str(np.sum(toa_dn == max_dn)))
+
         return toa_dn
 

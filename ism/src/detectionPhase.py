@@ -105,6 +105,17 @@ class detectionPhase(initIsm):
         :return: Toa in photons
         """
         #TODO
+        h = 6.62606896e-34  # Planck constant [J s]
+        c = 2.99792458e8  # Speed of light [m/s]
+
+        # 1. Irradiance [mW/m2] -> incident energy on the detector [J]
+        Ein = toa / 1000 * area_pix * tint
+
+        # 2. Energy of one photon for this band [J]
+        Ephoton = h * c / wv
+
+        # 3. Energy -> number of photons
+        toa_ph = Ein / Ephoton
         return toa_ph
 
     def phot2Electr(self, toa, QE):
@@ -115,6 +126,7 @@ class detectionPhase(initIsm):
         :return: toa in electrons
         """
         #TODO
+        toae = toa * QE
         return toae
 
     def badDeadPixels(self, toa,bad_pix,dead_pix,bad_pix_red,dead_pix_red):
@@ -128,6 +140,22 @@ class detectionPhase(initIsm):
         :return: toa in e- including bad & dead pixels
         """
         #TODO
+        toa_act = toa.shape[1]
+
+        n_bad = int(toa_act * bad_pix / 100)
+        n_dead = int(toa_act * dead_pix / 100)
+
+        if n_bad > 0:
+            step_bad = int(toa_act / n_bad)
+            idx_bad = range(5, toa_act, step_bad)
+            toa[:, idx_bad] = toa[:, idx_bad] * (1 - bad_pix_red)
+
+        if n_dead > 0:
+            step_dead = int(toa_act / n_dead)
+            idx_dead = range(0, toa_act, step_dead)
+            toa[:, idx_dead] = toa[:, idx_dead] * (1 - dead_pix_red)
+
+        self.logger.debug("Number of bad pixels: " + str(n_bad) + ", dead pixels: " + str(n_dead))
         return toa
 
     def prnu(self, toa, kprnu):
@@ -138,6 +166,13 @@ class detectionPhase(initIsm):
         :return: TOA after adding PRNU [e-]
         """
         #TODO
+        nact = toa.shape[1]
+
+        # One PRNU value per ACT pixel (time-invariant)
+        prnu = np.random.normal(0, 1, nact) * kprnu
+
+        # Apply to every ALT line
+        toa = toa * (1 + prnu)
         return toa
 
 
@@ -153,4 +188,17 @@ class detectionPhase(initIsm):
         :return: TOA in [e-] with dark signal
         """
         #TODO
+        nact = toa.shape[1]
+
+        # DSNU: one value per ACT pixel, positive values only
+        dsnu = np.abs(np.random.normal(0, 1, nact)) * kdsnu
+
+        # Constant component of the dark signal, temperature dependent
+        sd = ds_A_coeff * (T / Tref) ** 3 * np.exp(-ds_B_coeff * (1 / T - 1 / Tref))
+
+        # Total dark signal per pixel, time invariant
+        ds = sd * (1 + dsnu)
+
+        # Added to the signal
+        toa = toa + ds
         return toa
