@@ -104,7 +104,6 @@ class detectionPhase(initIsm):
         :param wv: Central wavelength of the band [m]
         :return: Toa in photons
         """
-        #TODO
         h = 6.62606896e-34  # Planck constant [J s]
         c = 2.99792458e8  # Speed of light [m/s]
 
@@ -125,8 +124,17 @@ class detectionPhase(initIsm):
         :param QE: Quantum efficiency [e-/ph]
         :return: toa in electrons
         """
-        #TODO
         toae = toa * QE
+
+        # Full Well Capacity. The detector element cannot hold more charge
+        # than the FWC, so the signal saturates there.
+        fwc = self.ismConfig.FWC
+        n_sat = int(np.sum(toae > fwc))
+        if n_sat > 0:
+            self.logger.debug("Saturation: " + str(n_sat) + " pixels above the FWC of "
+                              + str(fwc) + " [e-]")
+        toae[toae > fwc] = fwc
+
         return toae
 
     def badDeadPixels(self, toa,bad_pix,dead_pix,bad_pix_red,dead_pix_red):
@@ -139,7 +147,6 @@ class detectionPhase(initIsm):
         :param dead_pix_red: Reduction in the quantum efficiency for the dead pixels [-, over 1]
         :return: toa in e- including bad & dead pixels
         """
-        #TODO
         toa_act = toa.shape[1]
 
         n_bad = int(toa_act * bad_pix / 100)
@@ -165,7 +172,6 @@ class detectionPhase(initIsm):
         :param kprnu: multiplicative factor to the standard normal deviation for the PRNU
         :return: TOA after adding PRNU [e-]
         """
-        #TODO
         nact = toa.shape[1]
 
         # One PRNU value per ACT pixel (time-invariant)
@@ -187,7 +193,6 @@ class detectionPhase(initIsm):
         :param ds_B_coeff: Empirical parameter of the model 6040 K
         :return: TOA in [e-] with dark signal
         """
-        #TODO
         nact = toa.shape[1]
 
         # DSNU: one value per ACT pixel, positive values only

@@ -72,6 +72,17 @@ class mtf:
         self.logger.debug("Calculation of the Sysmtem MTF by multiplying the different contributors")
         Hsys = Hdiff * Hwfe * Hdefoc * Hdet * Hsmear * Hmotion
 
+        # Save the MTFs to file
+        if getattr(self.ismConfig, 'save_mtfs', True):
+            self.logger.debug("Saving the MTFs to " + directory)
+            writeMat(directory, 'Hdiff_' + band, Hdiff)
+            writeMat(directory, 'Hdefoc_' + band, Hdefoc)
+            writeMat(directory, 'Hwfe_' + band, Hwfe)
+            writeMat(directory, 'Hdet_' + band, Hdet)
+            writeMat(directory, 'Hsmear_' + band, Hsmear)
+            writeMat(directory, 'Hmotion_' + band, Hmotion)
+            writeMat(directory, 'Hsys_' + band, Hsys)
+
         # Plot cuts ACT/ALT of the MTF
         self.plotMtf(Hdiff, Hdefoc, Hwfe, Hdet, Hsmear, Hmotion, Hsys, nlines, ncolumns, fnAct, fnAlt, directory, band)
 
@@ -92,7 +103,6 @@ class mtf:
         :return fnAct: 1D normalised frequencies 2D ACT (f/(1/w))
         :return fnAlt: 1D normalised frequencies 2D ALT (f/(1/w))
         """
-        #TODO
         fstepAlt = 1 / nlines / w
         fstepAct = 1 / ncolumns / w
         eps= 1e-6
@@ -113,7 +123,6 @@ class mtf:
         :param fr2D: 2D relative frequencies (f/fc), where fc is the optics cut-off frequency
         :return: diffraction MTF
         """
-        #TODO
         x = np.clip(fr2D, 0.0, 1.0)
         Hdiff = (2 / np.pi) * (np.arccos(x) - x * np.sqrt(1 - x ** 2))
         return Hdiff
@@ -128,7 +137,6 @@ class mtf:
         :param D: Telescope diameter [m]
         :return: Defocus MTF
         """
-        #TODO
         x = np.pi * defocus * fr2D * (1 - fr2D)
         Hdefoc = np.divide(2 * jv(1, x), x, out=np.ones(x.shape), where=(x != 0))
         return Hdefoc
@@ -144,7 +152,6 @@ class mtf:
         :param wHF: RMS of high-frequency wavefront errors [m]
         :return: WFE Aberrations MTF
         """
-        #
         Hwfe = np.exp(-fr2D * (1 - fr2D) * (kLF * (wLF / lambd) ** 2 + kHF * (wHF / lambd) ** 2))
         return Hwfe
 
@@ -154,7 +161,6 @@ class mtf:
         :param fnD: 2D normalised frequencies (f/(1/w))), where w is the pixel width
         :return: detector MTF
         """
-        #TODO
         Hdet = np.abs(np.sinc(fn2D))
         return Hdet
 
@@ -166,7 +172,6 @@ class mtf:
         :param ksmear: Amplitude of low-frequency component for the motion smear MTF in ALT [pixels]
         :return: Smearing MTF
         """
-        #TODO
         Hsmear1D = np.sinc(ksmear * fnAlt)
         Hsmear = np.tile(Hsmear1D, (ncolumns, 1)).transpose()
         return Hsmear
@@ -178,7 +183,6 @@ class mtf:
         :param kmotion: Amplitude of high-frequency component for the motion smear MTF in ALT and ACT
         :return: detector MTF
         """
-        #TODO
         Hmotion = np.sinc(kmotion * fn2D)
         return Hmotion
 
@@ -205,9 +209,6 @@ class mtf:
         iact = int(np.floor(ncolumns / 2))
 
         # ---------------- Cut ACT (fix the ALT line, vary ACT) ----------------
-        # Only the positive frequencies
-        nfreq = int(np.floor(ncolumns / 2))
-
         plt.figure(figsize=(10, 6))
         plt.plot(fnAct[iact:], Hdiff[ialt, iact:], label='Diffraction MTF')
         plt.plot(fnAct[iact:], Hdefoc[ialt, iact:], label='Defocus MTF')
@@ -246,6 +247,3 @@ class mtf:
         plt.savefig(savestr)
         plt.close()
         print('Saved image ' + savestr)
-        #TODO
-
-
