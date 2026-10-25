@@ -19,6 +19,7 @@ PLOT_DIR = os.path.join(BASE, "plots_l1c")
 
 BAND = "VNIR-0"
 R_EARTH = 6371000.0   # [m] mean Earth radius
+NZOOM = 15            # half-width of the zoom window, in L1B pixels
 
 os.makedirs(PLOT_DIR, exist_ok=True)
 
@@ -95,33 +96,37 @@ ax.set_title("L1B and L1C grids, full scene")
 ax.grid(True, alpha=0.3)
 ax.legend(markerscale=10)
 
-# Zoom on a small corner, so the two grids can be told apart
-lon_min = float(lon_l1b.min())
-lat_min = float(lat_l1b.min())
-dlon = (float(lon_l1b.max()) - lon_min) * 0.06
-dlat = (float(lat_l1b.max()) - lat_min) * 0.06
+# Zoom on a window at the CENTRE of the scene.
+# The grid is rotated, so a window at the corner of the bounding box is empty.
+lon_c = float(lon_l1b[nalt // 2, nact // 2])
+lat_c = float(lat_l1b[nalt // 2, nact // 2])
+dlon = (float(lon_l1b.max()) - float(lon_l1b.min())) * NZOOM / nact
+dlat = (float(lat_l1b.max()) - float(lat_l1b.min())) * NZOOM / nalt
 
-sel = ((lon_l1c >= lon_min) & (lon_l1c <= lon_min + dlon) &
-       (lat_l1c >= lat_min) & (lat_l1c <= lat_min + dlat))
+sel = ((lon_l1c >= lon_c - dlon) & (lon_l1c <= lon_c + dlon) &
+       (lat_l1c >= lat_c - dlat) & (lat_l1c <= lat_c + dlat))
 
 ax = axes[1]
-ax.plot(lon_l1c[sel], lat_l1c[sel], "bs", markersize=5, fillstyle="none",
+ax.plot(lon_l1c[sel], lat_l1c[sel], "bs", markersize=6, fillstyle="none",
         label="L1C grid (MGRS, regular)")
-ax.plot(lon_l1b.ravel(), lat_l1b.ravel(), "r.", markersize=5,
+ax.plot(lon_l1b.ravel(), lat_l1b.ravel(), "r.", markersize=6,
         label="L1B grid (instrument)")
-ax.set_xlim(lon_min, lon_min + dlon)
-ax.set_ylim(lat_min, lat_min + dlat)
+ax.set_xlim(lon_c - dlon, lon_c + dlon)
+ax.set_ylim(lat_c - dlat, lat_c + dlat)
 ax.set_xlabel("Longitude [deg]")
 ax.set_ylabel("Latitude [deg]")
 ax.set_title("Zoom: L1B irregular vs L1C regular")
 ax.grid(True, alpha=0.3)
 ax.legend()
 
+print()
+print("Zoom window centred on", round(lat_c, 5), "/", round(lon_c, 5),
+      "- L1C points inside:", int(np.sum(sel)))
+
 plt.tight_layout()
 out_png = os.path.join(PLOT_DIR, "l1c_grid_vs_l1b_grid.png")
 plt.savefig(out_png, dpi=150)
 plt.close()
-print()
 print("Saved:", out_png)
 
 # ------------------------------------------------------------------
